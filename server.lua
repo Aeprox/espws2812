@@ -9,6 +9,15 @@ end
 sv:listen(80, function(socket)
     socket:on("receive", function(c, request)      
         local _, _, method, path = string.find(request, "([A-Z]+) (.+) HTTP")
+
+        if(method=="POST") then
+            print("Method Not Allowed")
+            socket:send("HTTP/1.1 405 Method Not Allowed")
+            socket:close()
+            socket = nil
+            collectgarbage()
+            return
+        end
     
         -- ignore favicon request
         if ((string.find(path,"favicon")) ~= nil) then
@@ -21,8 +30,7 @@ sv:listen(80, function(socket)
         elseif (string.find(path,".js")) ~= nil then
             sendfile(socket,script)
             
-
-        -- send html file and/or parse params    
+        --  parse URL-vars and send html file
         else
             local _GET = {}
 
@@ -54,13 +62,14 @@ sv:listen(80, function(socket)
                 -- show index.html
             else
                 print("Bad request")
-                socket:send("HTTP/1.1 500 Bad request")
+                socket:send("HTTP/1.1 400 Bad request")
                 socket:close()
                 socket = nil
                 collectgarbage()
                 return
             end
             
+            --socket:send("HTTP/1.1 200 OK")
             sendfile(socket,page)            
         end
     end)
