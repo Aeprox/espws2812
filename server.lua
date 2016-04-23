@@ -1,5 +1,6 @@
 page = "index.html"
 script = "cwheelmin.js"
+chunksize = 1020
 
 -- init
 if(sv==nil) then
@@ -88,14 +89,14 @@ function sendfile(socket, filename)
     print(length)
     
     -- if larger than 1024 bytes, send in chunks
-    if (length > 1024) then
+    if (length > chunksize) then
         local currentchunk = 1 
 
         file.open(filename, mode)
         
         socket:on("sent", function(socket)
             print("sent chunk")
-            if (length < (currentchunk-1)*1024) then -- if last chunk, close socket
+            if (length < (currentchunk-1)*chunksize) then -- if last chunk, close socket
                 socket:close()
                 file.close(filename)
                 print("Socket closed, sent "..length.." bytes")
@@ -120,7 +121,7 @@ function sendfile(socket, filename)
     end  
 end
 
--- use file.read() ONLY FOR FILES UNDER 1024 bytes
+-- use file.read() ONLY FOR FILES UNDER 1000 bytes
 function openfile(filename)
     file.open(filename)
     local content = file.read()
@@ -131,17 +132,16 @@ end
 function readchunk(filename, filesize, chunk)
     local linetable = {}
     local fline = ""
-    local cchar = 1
+    local cchar = 0
     local cline = 1
     
    -- read till EOF or 1024 bytes
-    fline=file.readline()
-    while (fline ~= nil and cchar <= 1024) do
-        linetable[cline]=fline
-        cchar = cchar + string.len(fline)
-        cline = cline + 1
-
+    while (fline ~= nil and cchar <= chunksize) do
         fline=file.readline()
+        if(fline == nil) then break end
+        linetable[cline]=fline
+        cline = cline + 1
+        cchar = cchar + string.len(fline)
     end
 
     return table.concat(linetable)
